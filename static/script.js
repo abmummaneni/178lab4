@@ -21,7 +21,7 @@ function update_aggregate(value, key){
         var results = JSON.parse(JSON.stringify((await response.json())))
         // TODO: extract the necessary data from the results and re-draw the bars
         // ...
-        // draw_bar(...)
+        draw_bar(results["data"], results["x_column"], results["y_column"])
     })
 }
 
@@ -38,8 +38,8 @@ function update_filter(value, key){
         var results = JSON.parse(JSON.stringify((await response.json())))
         // TODO: extract the necessary data from the results, re-draw the bars, and update the filters
         // ...
-        // update_filter_options(...)
-        // draw_bar(...)
+        update_filter_options(results["group_filters"])
+        draw_bar(results["data"], results["x_column"], results["y_column"])
     })
 }
 
@@ -56,4 +56,4 @@ svg = d3.select("#plot-container")
     .attr("transform",
           "translate(" + margin.left + "," + margin.top + ")");
 
-update_aggregate(null, null)
+update_aggregate("sum", "agg")
