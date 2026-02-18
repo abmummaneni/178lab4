@@ -39,8 +39,15 @@ function draw_bar(data, x_column, y_column){
             .style("text-anchor", "end");
 
     // Y Axis
+    // buffered min
+    let minY = d3.min(plotData, d => d.y);
+    if (minY < 0) {
+        minY *= 1.1; // 10% buffer
+    } else {
+        minY *= 0.9; // 10% buffer
+    }
     const y = d3.scaleLinear()
-        .domain([0, d3.max(plotData, d => d.y) * 1.1]) // 10% buffer
+        .domain([minY, d3.max(plotData, d => d.y) * 1.1]) // 10% buffer
         .range([height, 0]);
 
     svg.append("g")
@@ -116,8 +123,8 @@ function update_filter(value, key){
 }
 
 margin = {top: 30, right: 30, bottom: 70, left: 80},
-    width = 460 - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom;
+    width = 805 - margin.left - margin.right,
+    height = 700 - margin.top - margin.bottom;
 
 svg = d3.select("#plot-container")
   .append("svg")
@@ -128,4 +135,9 @@ svg = d3.select("#plot-container")
     .attr("transform",
           "translate(" + margin.left + "," + margin.top + ")");
 
-update_aggregate("sum", "agg")
+const default_agg = document.getElementById("agg").value;
+const default_x = document.getElementById("grouper").value;
+const default_y = document.getElementById("value").value;
+update_aggregate(default_x, "grouper")
+update_aggregate(default_y, "value")
+update_aggregate(default_agg, "agg")
