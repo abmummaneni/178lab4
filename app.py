@@ -48,8 +48,14 @@ def get_aggregated_data():
     actual_agg = "var" if app.agg == "variance" else app.agg
 
     aggregated_data = df.groupby(app.grouper)[app.value].agg(actual_agg)
+
+    # Get all unique values for the current grouper from the original dataset
+    all_grouper_values = orders[app.grouper].unique()
+
+    # Reindex the aggregated data to include all possible grouper values and fill NaN with 0
+    aggregated_data = aggregated_data.reindex(all_grouper_values, fill_value=0)
     
-    return aggregated_data.fillna(0).to_dict()
+    return aggregated_data.to_dict()
 
 
 # Pass the groups, values, aggregate functions, and group filters to the root.html template
