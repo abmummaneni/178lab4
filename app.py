@@ -16,11 +16,14 @@ aggs = ["sum", "mean", "variance", "count"]
 
 
 def get_group_filters():
-    group_filters = {
-        "Country/Region": sorted(list(app.filtered_orders["Country/Region"].unique())),
-        "Region": sorted(list(app.filtered_orders["Region"].unique())),
-        "State/Province": sorted(list(app.filtered_orders["State/Province"].unique())),
-    }
+    group_filters = {}
+    for group in groups:
+        # Build options using all active filters EXCEPT this dropdown itself
+        df = orders
+        for k, v in app.filters.items():
+            if k != group and v != "All":
+                df = df[df[k] == v]
+        group_filters[group] = sorted(df[group].dropna().unique().tolist())
     return group_filters
 
 
