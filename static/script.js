@@ -1,8 +1,7 @@
 // TODO: write the function to update all filter options
-function update_filter_options(group_filters){
+function update_filter_options(group_filters, active_filters){
     Object.keys(group_filters).forEach(group => {
         const select = d3.select(`#${group.replace('/', '\\/')}-filter`);
-        const currentValue = select.property("value");
         
         // Clear existing options except 'All'
         select.selectAll("option:not([value='All'])").remove();
@@ -13,7 +12,7 @@ function update_filter_options(group_filters){
         });
         
         // Re-set the value if it still exists in the list
-        select.property("value", currentValue);
+        select.property("value", active_filters[group] || "All");
     });
 }
 
@@ -79,7 +78,7 @@ function draw_bar(data, x_column, y_column){
         .text(y_column);
 }
 
-function update_aggregate(value, key){    
+function update_aggregate(value, key){
     fetch('/update_aggregate', {
         method: 'POST',
         credentials: 'include',
@@ -90,10 +89,7 @@ function update_aggregate(value, key){
         })
     }).then(async function(response){
         var results = await response.json();
-        draw_bar(results["data"], results["x_column"], results["y_column"]);
-        // Reset dropdowns
-        d3.selectAll("#filters-container select").property("value", "All");
-
+        update_filter_options(results["group_filters"], results["active_filters"]);
         draw_bar(results["data"], results["x_column"], results["y_column"])
     })
 }
@@ -110,14 +106,8 @@ function update_filter(value, key){
     }).then(async function(response){
         var results = JSON.parse(JSON.stringify((await response.json())))
         // Update the dropdown options
-        update_filter_options(results["group_filters"]);
-        
-        // Sync UI: Set dropdown values to match the backend state 
-        Object.keys(results["active_filters"]).forEach(k => {
-            d3.select(`#${k.replace('/', '\\/')}-filter`).property("value", results["active_filters"][k]);
-        });
+        update_filter_options(results["group_filters"], results["active_filters"]);
 
-        // Re-draw chart
         draw_bar(results["data"], results["x_column"], results["y_column"]);
     })
 }

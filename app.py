@@ -16,45 +16,18 @@ aggs = ["sum", "mean", "variance", "count"]
 
 
 def get_group_filters():
-    df = orders.copy()
-    
-    # if Country is 'United States'
-    # the State list should only show US states
-    if app.filters["Country/Region"] != "All":
-        df = df[df["Country/Region"] == app.filters["Country/Region"]]
-    if app.filters["Region"] != "All":
-        df = df[df["Region"] == app.filters["Region"]]
-        
     group_filters = {
-        "Country/Region": sorted(list(orders["Country/Region"].unique())),
-        "Region": sorted(list(df["Region"].unique())),
-        "State/Province": sorted(list(df["State/Province"].unique())),
+        "Country/Region": sorted(list(app.filtered_orders["Country/Region"].unique())),
+        "Region": sorted(list(app.filtered_orders["Region"].unique())),
+        "State/Province": sorted(list(app.filtered_orders["State/Province"].unique())),
     }
     return group_filters
 
 
 # TODO: define a function that returns the aggregated data
 def get_aggregated_data():
-    df = orders.copy()
-
-    for col, val in app.filters.items():
-        if val != "All":
-            df = df[df[col] == val]
-            
-    if df.empty:
-        return {}
-
-    # Map "variance" to "var" for Pandas compatibility 
     actual_agg = "var" if app.agg == "variance" else app.agg
-
-    aggregated_data = df.groupby(app.grouper)[app.value].agg(actual_agg)
-
-    # Get all unique values for the current grouper from the original dataset
-    all_grouper_values = orders[app.grouper].unique()
-
-    # Reindex the aggregated data to include all possible grouper values and fill NaN with 0
-    aggregated_data = aggregated_data.reindex(all_grouper_values, fill_value=0)
-    
+    aggregated_data = app.filtered_orders.groupby(app.grouper)[app.value].agg(actual_agg)
     return aggregated_data.to_dict()
 
 
@@ -76,9 +49,10 @@ def update_aggregate():
     data = request.get_json()
     key = data["key"]
     val = data["value"]
-    
+
     # 3b: Reset all filters to "All" 
     app.filters = {"Country/Region": "All", "Region": "All", "State/Province": "All"}
+    app.filtered_orders = orders
     
     if key == "grouper":
         app.grouper = val
@@ -86,7 +60,7 @@ def update_aggregate():
         app.value = val
     elif key == "agg":
         app.agg = val
-        
+
     return {
         "data": get_aggregated_data(), 
         "x_column": app.grouper, 
@@ -99,19 +73,29 @@ def update_aggregate():
 @app.route("/update_filter", methods=["POST"])
 def update_filter():
     data = request.get_json()
-    
+
     # Change 'group' to 'key' to match frontend fetch call
     filter_type = data["key"] 
     filter_val = data["value"]
-    
+
     app.filters[filter_type] = filter_val
-    
+    # Reset downsteram filters
+    if filter_type == "Country/Region":
+        app.filters["Region"] = "All"
+        app.filters["State/Province"] = "All"
+    elif filter_type == "Region":
+        app.filters["State/Province"] = "All"
+
     # 3a: If State is selected, automatically update Country and Region 
     if filter_type == "State/Province" and filter_val != "All":
         # Find the row to get parent info
         match = orders[orders["State/Province"] == filter_val].iloc[0]
         app.filters["Country/Region"] = match["Country/Region"]
         app.filters["Region"] = match["Region"]
+    app.filtered_orders = orders
+    for k, v in app.filters.items():
+        if v != "All":
+            app.filtered_orders = app.filtered_orders[app.filtered_orders[k] == v]
 
     return {
         "group_filters": get_group_filters(), 
