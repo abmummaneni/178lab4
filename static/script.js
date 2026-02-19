@@ -58,6 +58,21 @@ function draw_bar(data, x_column, y_column){
         .attr("width", x.bandwidth())
         .attr("height", d => Math.abs(y(d.y) - y(0)))
         .attr("fill", "#4e79a7");
+
+    // X-axis label
+    svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("x", width / 2)
+        .attr("y", height + margin.bottom - 10)
+        .text(x_column);
+
+    // Y-axis label
+    svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", -margin.left + 20)
+        .text(y_column);
 }
 
 
@@ -95,7 +110,7 @@ function update_filter(value, key){
     })
 }
 
-margin = {top: 30, right: 30, bottom: 70, left: 80},
+margin = {top: 30, right: 30, bottom: 100, left: 80},
     width = 1080 - margin.left - margin.right,
     height = 700 - margin.top - margin.bottom;
 
