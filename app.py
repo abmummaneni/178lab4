@@ -27,8 +27,12 @@ def get_group_filters():
 # TODO: define a function that returns the aggregated data
 def get_aggregated_data():
     actual_agg = "var" if app.agg == "variance" else app.agg
-    aggregated_data = app.filtered_orders.groupby(app.grouper)[app.value].agg(actual_agg)
-    return aggregated_data.to_dict()
+    agg = app.filtered_orders.groupby(app.grouper)[app.value].agg(actual_agg).fillna(0)
+
+    # Keep all categories visible; missing groups become 0
+    all_groups = sorted(orders[app.grouper].dropna().unique().tolist())
+    agg = agg.reindex(all_groups, fill_value=0)
+    return agg.to_dict()
 
 
 # Pass the groups, values, aggregate functions, and group filters to the root.html template
@@ -53,7 +57,7 @@ def update_aggregate():
     # 3b: Reset all filters to "All" 
     app.filters = {"Country/Region": "All", "Region": "All", "State/Province": "All"}
     app.filtered_orders = orders
-    
+
     if key == "grouper":
         app.grouper = val
     elif key == "value":
