@@ -18,13 +18,9 @@ function update_filter_options(group_filters, active_filters){
 
 // TODO: write the function to draw the bar chart
 function draw_bar(data, x_column, y_column){
-    // Convert dictionary format {key: val} -> array of objects [{x: key, y: val}]
-    const plotData = Object.entries(data).map(([key, val]) => ({ x: key, y: val }));
-
-    // Clear previous elements
+    const plotData = Object.entries(data).map(([key, val]) => ({ x: key, y: +val }));
     svg.selectAll("*").remove();
 
-    // X axis
     const x = d3.scaleBand()
         .range([0, width])
         .domain(plotData.map(d => d.x))
@@ -34,49 +30,36 @@ function draw_bar(data, x_column, y_column){
         .attr("transform", `translate(0, ${height})`)
         .call(d3.axisBottom(x))
         .selectAll("text")
-            .attr("transform", "translate(-10,0)rotate(-45)")
-            .style("text-anchor", "end");
+        .attr("transform", "translate(-10,0)rotate(-45)")
+        .style("text-anchor", "end");
 
-    // Y Axis
-    // buffered min
-    let minY = d3.min(plotData, d => d.y);
-    if (minY < 0) {
-        minY *= 1.1; // 10% buffer
+    let yMin = Math.min(0, d3.min(plotData, d => d.y));
+    let yMax = Math.max(0, d3.max(plotData, d => d.y));
+    if (yMin < 0) {
+        yMin *= 1.1; // Add 10% padding if negative values exist
     } else {
-        minY *= 0.9; // 10% buffer
+        yMin = 0; // Start from 0 if all values are positive
     }
+    yMax *= 1.1; // Add 10% padding to max value
+
     const y = d3.scaleLinear()
-        .domain([minY, d3.max(plotData, d => d.y) * 1.1]) // 10% buffer
+        .domain([yMin, yMax])
+        .nice()
         .range([height, 0]);
 
-    svg.append("g")
-        .call(d3.axisLeft(y));
+    svg.append("g").call(d3.axisLeft(y));
 
-    // Bars
     svg.selectAll("rect")
         .data(plotData)
         .enter()
         .append("rect")
-            .attr("x", d => x(d.x))
-            .attr("y", d => y(d.y))
-            .attr("width", x.bandwidth())
-            .attr("height", d => height - y(d.y))
-            .attr("fill", "#4e79a7");
-
-    // axis Labels
-    svg.append("text")
-        .attr("text-anchor", "end")
-        .attr("x", width/2 + margin.left)
-        .attr("y", height + margin.bottom - 5)
-        .text(x_column);
-
-    svg.append("text")
-        .attr("text-anchor", "end")
-        .attr("transform", "rotate(-90)")
-        .attr("y", -margin.left + 20)
-        .attr("x", -height/2)
-        .text(y_column);
+        .attr("x", d => x(d.x))
+        .attr("y", d => Math.min(y(0), y(d.y)))
+        .attr("width", x.bandwidth())
+        .attr("height", d => Math.abs(y(d.y) - y(0)))
+        .attr("fill", "#4e79a7");
 }
+
 
 function update_aggregate(value, key){
     fetch('/update_aggregate', {
@@ -113,7 +96,7 @@ function update_filter(value, key){
 }
 
 margin = {top: 30, right: 30, bottom: 70, left: 80},
-    width = 805 - margin.left - margin.right,
+    width = 1080 - margin.left - margin.right,
     height = 700 - margin.top - margin.bottom;
 
 svg = d3.select("#plot-container")
